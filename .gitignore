@@ -1,0 +1,32 @@
+# Arduino IDE
+*.cpp.o
+*.ino.cpp
+*.o
+*.exe
+*.hex
+
+# PlatformIO
+.pio/
+.vscode/
+libdeps/
+.pioenvs/
+
+# Mac OS X
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Личные настройки IDE
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Логи и файлы сборки
+*.log
+
