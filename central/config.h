@@ -10,4 +10,7 @@
 // Интервал обновления данных с датчиков (в миллисекундах)
 #define SENSOR_READ_INTERVAL 5000  // 5 секунд
 
+// Интервал сохранения baseline SGP30 (мс)
+#define BASELINE_SAVE_INTERVAL 3600000UL  // 1 час
+
 #endif
