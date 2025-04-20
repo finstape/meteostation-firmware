@@ -14,4 +14,8 @@ float getHumidity();
 uint16_t getTVOC();
 uint16_t getCO2();
 
+// BMP180 (атмосферное давление и температура)
+float getPressure();     // в hPa
+float getBmpTemperature();
+
 #endif
