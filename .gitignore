@@ -30,3 +30,5 @@ Desktop.ini
 # Логи и файлы сборки
 *.log
 
+# Конфиг
+esp/config.h
