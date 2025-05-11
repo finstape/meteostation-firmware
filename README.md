@@ -1,4 +1,7 @@
-# Проект: Метеостанция (умная метеостанция)
+
+![Language](https://img.shields.io/badge/Language-C++-blue)![IoT](https://img.shields.io/badge/Project-IoT-success)![Platform](https://img.shields.io/badge/Platform-Arduino-blue)![Platform](https://img.shields.io/badge/Platform-ESP8266-orange)![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
+
+# Проект: Умная метеостанция
 
 Этот репозиторий содержит прошивки и код аппаратной части умной метеостанции, разработанной в рамках учебного проекта IoT.  
 Система предназначена для мониторинга параметров окружающей среды (температура, влажность, давление, CO2), передачи данных по радиоканалу и публикации их на сервер для последующего анализа и уведомлений
