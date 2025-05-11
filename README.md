@@ -1,5 +1,5 @@
 
-![Language](https://img.shields.io/badge/Language-C++-blue)![IoT](https://img.shields.io/badge/Project-IoT-success)![Platform](https://img.shields.io/badge/Platform-Arduino-blue)![Platform](https://img.shields.io/badge/Platform-ESP8266-orange)![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
+![Language](https://img.shields.io/badge/Language-C++-blue?style=for-the-badge) ![IoT](https://img.shields.io/badge/Project-IoT-success?style=for-the-badge) ![Platform](https://img.shields.io/badge/Platform-Arduino-blue?style=for-the-badge&logo=arduino) ![Platform](https://img.shields.io/badge/Platform-ESP8266-orange?style=for-the-badge&logo=esp8266) ![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg?style=for-the-badge)
 
 # Проект: Умная метеостанция
 
