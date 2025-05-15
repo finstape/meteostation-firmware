@@ -6,27 +6,23 @@
 #include <ArduinoJson.h>
 
 RF24 radio(9, 10); // CE, CSN
-const byte address[6] = "00001";
+byte addresses[][6] = {"1Node", "2Node"};
+
 char outdoorPayload[32];
 
 void setup() {
   Serial.begin(9600);
   delay(1000);
+  
+  radio.setAutoAck(1);
+  radio.enableAckPayload();
+  radio.setRetries(5, 15);
+  radio.setDataRate(RF24_1MBPS);
+  radio.setPALevel(RF24_PA_LOW);
 
-  if (!radio.begin()) {
-    Serial.println("NRF24 не найден! Проверьте подключения");
-  } else if (!radio.isChipConnected()) {
-    Serial.println("NRF24 не отвечает (isChipConnected = false)");
-  } else {
-    Serial.println("NRF24 модуль найден");
-    radio.setChannel(0x7B);
-    radio.setPALevel(RF24_PA_LOW);
-    radio.setDataRate(RF24_1MBPS);
-    radio.enableDynamicPayloads();
-    radio.setRetries(5, 15);
-    radio.openReadingPipe(1, address);
-    radio.startListening();
-  }
+  radio.openWritingPipe(addresses[0]);    // outdoor
+  radio.openReadingPipe(1, addresses[1]); // central
+  radio.startListening();
 
   initSensors();
 }
@@ -35,21 +31,39 @@ void loop() {
   updateSensors();
 
   String outdoorStr = "";
-  unsigned long startWait = millis();
-  while (millis() - startWait < SENSOR_READ_INTERVAL) {
-    if (radio.available()) {
+  unsigned long startTime = millis();
+  while (millis() - startTime < SENSOR_READ_INTERVAL) {
+    byte pipeNo;
+    if (radio.available(&pipeNo)) {
+      memset(outdoorPayload, 0, sizeof(outdoorPayload));
       radio.read(&outdoorPayload, sizeof(outdoorPayload));
       outdoorStr = String(outdoorPayload);
+
+      // отправляем ack
+      byte ackResponse = 1;
+      radio.writeAckPayload(pipeNo, &ackResponse, 1);
       break;
     }
+    delay(10);  // даем немного времени между проверками (важно!)
   }
 
   if (outdoorStr.length() == 0) {
     outdoorStr = "T:null;H:null;P:null";
   }
 
+  char buffer[32];
+  memcpy(buffer, outdoorPayload, sizeof(buffer));
+  buffer[31] = '\0';
+
   float ot = NAN, oh = NAN, op = NAN;
-  sscanf(outdoorStr.c_str(), "T:%f;H:%f;P:%f", &ot, &oh, &op);
+
+  char *token = strtok(buffer, ";");
+  while (token != NULL) {
+    if (strncmp(token, "T:", 2) == 0) ot = atof(token + 2);
+    else if (strncmp(token, "H:", 2) == 0) oh = atof(token + 2);
+    else if (strncmp(token, "P:", 2) == 0) op = atof(token + 2);
+    token = strtok(NULL, ";");
+  }
 
   StaticJsonDocument<256> doc;
 

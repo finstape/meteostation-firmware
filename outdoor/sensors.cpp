@@ -27,7 +27,10 @@ void initSensors() {
 
   // Инициализация BMP180
   if (bmp.begin()) {
+    Serial.println("BMP модуль обнаружен");
     bmpAvailable = true;
+  } else {
+    Serial.println("BMP модуль не обнаружен! Проверьте подключения");
   }
 
   delay(15000); // Время, чтобы датчики откалибровались и стали замерять точные значения
