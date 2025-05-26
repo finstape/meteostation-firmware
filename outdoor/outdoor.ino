@@ -2,27 +2,25 @@
 #include "sensors.h"
 
 #include <SPI.h>
-#include <RF24.h>
+#include "nRF24L01.h"
+#include "RF24.h"
 
-// Радиодатчик
-RF24 radio(9, 10); // CE, CSN
+RF24 radio(9, 10);  // CE, CSN
 byte addresses[][6] = {"1Node", "2Node"};
 
 typedef enum { role_ping_out = 1, role_pong_back } role_e;
 role_e role = role_ping_out;
 
-// Буфер для передачи
-char payload[32];  // NRF24L01 ограничен 32 байтами
+char payload[32];
 
 void setup() {
   Serial.begin(9600);
-  delay(500); // небольшая задержка для Serial
+  delay(500);
 
   if (!radio.begin()) {
-    Serial.println("NRF24 модуль не обнаружен! Проверьте подключения");
+    Serial.println("NRF24 не найден!");
   } else {
-    Serial.println("NRF24 модуль обнаружен");
-
+    Serial.println("NRF24 модуль найден");
     radio.setAutoAck(1);
     radio.enableAckPayload();
     radio.setRetries(5, 15);
@@ -32,11 +30,12 @@ void setup() {
     radio.openWritingPipe(addresses[1]);    // central
     radio.openReadingPipe(1, addresses[0]); // outdoor
     radio.stopListening();
+
+    Serial.println("Outdoor node ready");
   }
 
   initSensors();
 }
-
 
 void loop() {
   updateSensors();
@@ -45,7 +44,6 @@ void loop() {
   float h = getHumidity();
   float p = getPressure();
 
-  // Подготовка строк с 1 знаком после запятой
   char t_str[8], h_str[8], p_str[8];
   if (isnan(t)) strcpy(t_str, "null");
   else dtostrf(t, 0, 1, t_str);
@@ -56,7 +54,6 @@ void loop() {
   if (isnan(p)) strcpy(p_str, "null");
   else dtostrf(p, 0, 1, p_str);
 
-  // Формируем строку для отправки
   String msg = "T:" + String(t_str) + ";H:" + String(h_str) + ";P:" + String(p_str);
   msg.toCharArray(payload, sizeof(payload));
 

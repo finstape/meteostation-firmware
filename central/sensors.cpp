@@ -17,6 +17,7 @@ Adafruit_SGP30 sgp;
 bool sgpAvailable = false;
 uint16_t tvoc = 0, co2 = 0;
 uint16_t baselineTVOC = 0, baselineCO2 = 0;
+unsigned long lastSGPRead = 0;
 unsigned long lastBaselineSave = 0;
 
 // BMP180
@@ -24,31 +25,32 @@ Adafruit_BMP085_Unified bmp(10180); // ID произвольный
 bool bmpAvailable = false;
 float pressure = NAN;
 
-// Инициализация всех датчиков
 void initSensors() {
-  // Инициализация DHT21
   dht.begin();
-  dhtAvailable = true;  // Предполагаем, что DHT всегда запускается (нет метода проверки)
+  dhtAvailable = true;
 
-  // Инициализация I2C
   Wire.begin();
 
-  // Инициализация SGP30
   if (sgp.begin()) {
-    sgpAvailable = true;    
-    sgp.setIAQBaseline(0x8B60, 0x8AD3); // Восстановление baseline (заглушка)
+    sgpAvailable = true;
+    Serial.println("SGP30 найден. Подождите 15 секунд...");
+    lastSGPRead = millis();
     lastBaselineSave = millis();
+  } else {
+    Serial.println("SGP30 не найден");
   }
 
-  // Инициализация BMP180
   if (bmp.begin()) {
     bmpAvailable = true;
+    Serial.println("BMP180 найден");
+  } else {
+    Serial.println("BMP180 не найден");
   }
 
-  delay(60000); // Время, чтобы датчики откалибровались и стали замерять точные значения
+  // НЕ задерживаем работу системы, просто сообщим пользователю
+  delay(60000);
 }
 
-// Основной цикл обновления данных
 void updateSensors() {
   // Чтение DHT21
   if (dhtAvailable) {
@@ -58,30 +60,38 @@ void updateSensors() {
     humidity    = isnan(newHum) ? NAN : newHum;
   } else {
     temperature = NAN;
-    humidity    = NAN;
+    humidity = NAN;
   }
 
-  // Чтение SGP30
-  if (sgpAvailable && sgp.IAQmeasure()) {
-    tvoc = sgp.TVOC;
-    co2 = sgp.eCO2;
-  } else {
-    tvoc = 0;
-    co2  = 0;
+  // Чтение SGP30 — 1 раз в секунду
+  if (sgpAvailable && millis() - lastSGPRead >= 1000) {
+    lastSGPRead = millis();
+
+    if (sgp.IAQmeasure()) {
+      tvoc = sgp.TVOC;
+      co2  = sgp.eCO2;
+      Serial.print("SGP30: TVOC = "); Serial.print(tvoc);
+      Serial.print(" ppb, eCO2 = "); Serial.print(co2); Serial.println(" ppm");
+    } else {
+      tvoc = 0;
+      co2  = 400;
+    }
   }
 
-  // Сохранение baseline SGP30 раз в час
-  // SGP30 требует периодической рекалибровки
-  // Без этого через сутки точность начнёт плыть
+  // Сохранение baseline раз в BASELINE_SAVE_INTERVAL
   if (sgpAvailable && millis() - lastBaselineSave >= BASELINE_SAVE_INTERVAL) {
     lastBaselineSave = millis();
-    sgp.getIAQBaseline(&baselineCO2, &baselineTVOC);
+    if (sgp.getIAQBaseline(&baselineCO2, &baselineTVOC)) {
+      Serial.print("SGP30 Baseline: ");
+      Serial.print(baselineCO2, HEX); Serial.print(" ");
+      Serial.println(baselineTVOC, HEX);
+    }
   }
 
   // Чтение BMP180
   if (bmpAvailable) {
     sensors_event_t bmpEvent;
-    bmp.getEvent(&bmpEvent);  // Чтение давления
+    bmp.getEvent(&bmpEvent);
 
     if (bmpEvent.pressure) {
       pressure = bmpEvent.pressure * 0.750062;  // мм рт. ст.
@@ -93,7 +103,7 @@ void updateSensors() {
   }
 }
 
-// Геттеры для получения значений в других частях программы
+// Геттеры
 float getTemperature()  { return temperature; }
 float getHumidity()     { return humidity; }
 uint16_t getTVOC()      { return tvoc; }

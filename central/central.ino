@@ -2,10 +2,11 @@
 #include "sensors.h"
 
 #include <SPI.h>
-#include <RF24.h>
+#include "nRF24L01.h"
+#include "RF24.h"
 #include <ArduinoJson.h>
 
-RF24 radio(9, 10); // CE, CSN
+RF24 radio(9, 10);
 byte addresses[][6] = {"1Node", "2Node"};
 
 char outdoorPayload[32];
@@ -13,16 +14,21 @@ char outdoorPayload[32];
 void setup() {
   Serial.begin(9600);
   delay(1000);
-  
-  radio.setAutoAck(1);
-  radio.enableAckPayload();
-  radio.setRetries(5, 15);
-  radio.setDataRate(RF24_1MBPS);
-  radio.setPALevel(RF24_PA_LOW);
 
-  radio.openWritingPipe(addresses[0]);    // outdoor
-  radio.openReadingPipe(1, addresses[1]); // central
-  radio.startListening();
+  if (!radio.begin()) {
+    Serial.println("NRF24 не найден!");
+  } else {
+    Serial.println("NRF24 модуль найден");
+    radio.setAutoAck(1);
+    radio.enableAckPayload();
+    radio.setRetries(5, 15);
+    radio.setDataRate(RF24_1MBPS);
+    radio.setPALevel(RF24_PA_LOW);
+
+    radio.openWritingPipe(addresses[0]);    // outdoor
+    radio.openReadingPipe(1, addresses[1]); // central
+    radio.startListening();
+  }
 
   initSensors();
 }
@@ -31,20 +37,20 @@ void loop() {
   updateSensors();
 
   String outdoorStr = "";
-  unsigned long startTime = millis();
-  while (millis() - startTime < SENSOR_READ_INTERVAL) {
+  unsigned long startWait = millis();
+  while (millis() - startWait < SENSOR_READ_INTERVAL) {
     byte pipeNo;
     if (radio.available(&pipeNo)) {
       memset(outdoorPayload, 0, sizeof(outdoorPayload));
       radio.read(&outdoorPayload, sizeof(outdoorPayload));
       outdoorStr = String(outdoorPayload);
 
-      // отправляем ack
+      // можно отправить ack payload (например байт подтверждения)
       byte ackResponse = 1;
       radio.writeAckPayload(pipeNo, &ackResponse, 1);
+
       break;
     }
-    delay(10);  // даем немного времени между проверками (важно!)
   }
 
   if (outdoorStr.length() == 0) {
@@ -54,7 +60,6 @@ void loop() {
   char buffer[32];
   memcpy(buffer, outdoorPayload, sizeof(buffer));
   buffer[31] = '\0';
-
   float ot = NAN, oh = NAN, op = NAN;
 
   char *token = strtok(buffer, ";");
@@ -64,6 +69,7 @@ void loop() {
     else if (strncmp(token, "P:", 2) == 0) op = atof(token + 2);
     token = strtok(NULL, ";");
   }
+
 
   StaticJsonDocument<256> doc;
 
@@ -105,7 +111,6 @@ void loop() {
   else
     outdoor["pressure"] = op;
 
-  // Отправка JSON в Serial (ESP читает)
   serializeJson(doc, Serial);
   Serial.println();
 
